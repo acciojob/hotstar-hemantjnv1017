@@ -1,6 +1,5 @@
 package com.driver.services;
 
-
 import com.driver.model.Subscription;
 import com.driver.model.SubscriptionType;
 import com.driver.model.User;
@@ -21,21 +20,35 @@ public class UserService {
     @Autowired
     WebSeriesRepository webSeriesRepository;
 
-
     public Integer addUser(User user){
-
-        //Jut simply add the user to the Db and return the userId returned by the repository
-        return null;
+        // Simply add the user to the database and return the userId returned by the repository
+        User savedUser = userRepository.save(user);
+        return savedUser.getId();
     }
 
     public Integer getAvailableCountOfWebSeriesViewable(Integer userId){
+        // Return the count of all webSeries that a user can watch based on their ageLimit and subscriptionType
+        // Hint: Retrieve all the Webseries from the WebSeriesRepository
 
-        //Return the count of all webSeries that a user can watch based on his ageLimit and subscriptionType
-        //Hint: Take out all the Webseries from the WebRepository
+        User user = userRepository.findById(userId).orElseThrow(() -> new IllegalArgumentException("User not found"));
+        Integer userAge = user.getAge();
 
+        if (userAge > 18) {
+            userAge = Integer.MAX_VALUE;
+        } else {
+            userAge = 18;
+        }
 
-        return null;
+        List<WebSeries> webSeriesList = webSeriesRepository.findAll();
+
+        Integer count = 0;
+
+        for (WebSeries webSeries : webSeriesList) {
+            if (webSeries.getAgeLimit() <= userAge) {
+                count++;
+            }
+        }
+
+        return count;
     }
-
-
 }

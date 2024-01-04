@@ -26,24 +26,91 @@ public class SubscriptionService {
 
         //Save The subscription Object into the Db and return the total Amount that user has to pay
 
-        return null;
+        // Calculate the total amount
+        Integer noOfScreensRequired = subscriptionEntryDto.getNoOfScreensRequired();
+        Integer baseAmount = 0;
+        Integer perScreenCost = 0;
+
+        switch (subscriptionEntryDto.getSubscriptionType()) {
+            case BASIC:
+                baseAmount = 500;
+                perScreenCost = 200;
+                break;
+            case PRO:
+                baseAmount = 800;
+                perScreenCost = 250;
+                break;
+            case ELITE:
+                baseAmount = 1000;
+                perScreenCost = 350;
+                break;
+            default:
+                break;
+        }
+
+        Integer totalAmount = baseAmount + (perScreenCost * noOfScreensRequired);
+
+        // Get user info
+        User user = userRepository.findById(subscriptionEntryDto.getUserId()).get();
+
+        // Set subscription parameters
+        Subscription subscription = new Subscription();
+        subscription.setSubscriptionType(subscriptionEntryDto.getSubscriptionType());
+        subscription.setNoOfScreensSubscribed(noOfScreensRequired);
+        subscription.setUser(user);
+        subscription.setTotalAmountPaid(totalAmount);
+
+        // Set User FK
+        user.setSubscription(subscription);
+
+        return totalAmount;
     }
 
-    public Integer upgradeSubscription(Integer userId)throws Exception{
+    public Integer upgradeSubscription(Integer userId) throws Exception {
+        // If you are already at an ELITE subscription: throw Exception ("Already the best Subscription")
+        // In all other cases, try to upgrade the subscription and calculate the price difference that the user has to pay
+        // Update the subscription in the repository
 
-        //If you are already at an ElITE subscription : then throw Exception ("Already the best Subscription")
-        //In all other cases just try to upgrade the subscription and tell the difference of price that user has to pay
-        //update the subscription in the repository
+        User user = userRepository.findById(userId).orElseThrow(() -> new Exception("User not found"));
 
-        return null;
+        if (user.getSubscription().getSubscriptionType() == SubscriptionType.ELITE) {
+            throw new Exception("Already the best Subscription");
+        }
+
+        Subscription subscription = user.getSubscription();
+        Integer previousFair = subscription.getTotalAmountPaid();
+        Integer currFair;
+
+        if (subscription.getSubscriptionType() == SubscriptionType.BASIC) {
+            subscription.setSubscriptionType(SubscriptionType.PRO);
+            currFair = previousFair + 300 + (50 * subscription.getNoOfScreensSubscribed());
+        } else {
+            if (subscription.getSubscriptionType() == SubscriptionType.ELITE) {
+                throw new Exception("Already the best Subscription");
+            }
+            subscription.setSubscriptionType(SubscriptionType.ELITE);
+            currFair = previousFair + 200 + (100 * subscription.getNoOfScreensSubscribed());
+        }
+
+        subscription.setTotalAmountPaid(currFair);
+        user.setSubscription(subscription);
+        subscriptionRepository.save(subscription);
+
+        return currFair - previousFair;
     }
 
-    public Integer calculateTotalRevenueOfHotstar(){
+    public Integer calculateTotalRevenueOfHotstar() {
+        // We need to find out the total revenue of Hotstar from all the subscriptions combined
+        // Hint is to use the findAll function from the SubscriptionDb
 
-        //We need to find out total Revenue of hotstar : from all the subscriptions combined
-        //Hint is to use findAll function from the SubscriptionDb
+        List<Subscription> subscriptionList = subscriptionRepository.findAll();
+        Integer totalRevenue = 0;
 
-        return null;
+        for (Subscription subscription : subscriptionList) {
+            totalRevenue += subscription.getTotalAmountPaid();
+        }
+        return totalRevenue;
     }
+
 
 }
